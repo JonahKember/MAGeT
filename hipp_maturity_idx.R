@@ -1,5 +1,5 @@
 #############################
-# Hippocampus maturity index
+# Hippocampal maturity index
 #############################
 
 # Specify whether hippocampal volume should be controlled for.
