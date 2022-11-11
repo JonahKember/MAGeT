@@ -4,7 +4,7 @@ fprintf('Converting W matrix to nifti...')
 
 % Specify path.
 path = '/home/jkember/scratch/';
-output = 'components';
+output = '/components';
 
 % Define hemisphere labels. 
 hemispheres = {'right','left'};
@@ -12,6 +12,11 @@ hemispheres = {'right','left'};
 % Load population average.
 pop_vol = niftiread([path,'NMF/majority_vote_label.nii']);
 info = niftiinfo([path,'NMF/majority_vote_label.nii']);
+
+% Create output directory.
+output_dir = [path,'/Component_nii'];
+mkdir(output_dir)
+
 
 for hem = 1:2
     for k = 2:7
@@ -29,6 +34,6 @@ for hem = 1:2
         vol(idx) = cluster;
 
         %  Write to a nifti file.
-        niftiwrite(vol,[output,'_k',num2str(k),'_',hemispheres{hem},'.nii'],info)
+        niftiwrite(vol,[output_dir,output,'_k',num2str(k),'_',hemispheres{hem},'.nii'],info)
     end
 end
