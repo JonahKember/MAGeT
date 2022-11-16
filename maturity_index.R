@@ -23,13 +23,13 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   z_score = function(x) {(x - mean(x, na.rm = T))/sd(x, na.rm = T)}
   
   # Ensure data is in a matrix
-  X_emp = as.matrix(X)
+  X = as.matrix(X)
   
   # Define variable names
   names = colnames(X)
   
   # Z-score empirical X
-  X_emp = apply(X_emp,2,z_score)
+  X_emp = apply(X,2,z_score)
   
   # Perform singular value decomposition of correlation vector
   svd_emp = svd(cor(y,X_emp))
@@ -51,7 +51,7 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
     
     # Shuffle rows of X, define as X_syn
     resamp_idx = sample(1:length(y), replace = F)
-    X_syn = X_emp[resamp_idx,]
+    X_syn = X[resamp_idx,]
     
     # Z-score synthetic X
     X_syn = apply(X_syn,2,z_score)
