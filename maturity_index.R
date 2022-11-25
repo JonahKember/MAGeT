@@ -8,9 +8,12 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   #   path = Directory for plots to be saved.
   
   # Outputs:
-  #   BS Ratio = Significance values (bootstrapped ratios) for each feature in X.
-  #   LV Weights = Latent variable weights (how strongly each feature in X loads onto the latent variable).
-  #   Significance Test = Whether empirical singular value is outside specified threshold (Logical).
+  #   $bs_ratio = Significance values (bootstrapped ratios) for each feature in X.
+  #   $lv_weights = Latent variable weights (how strongly each feature in X loads onto the latent variable).
+  #   $sig = Whether empirical singular value is outside specified threshold (Logical).
+  #   $lv_scores = Latent variable scores.
+  #   $X_tot_var = Total variance accounted for in X.
+  #   $y_tot_var = Total variance accounted for in y.
   
   #######################
   ### Set-up
