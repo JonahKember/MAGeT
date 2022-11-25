@@ -16,13 +16,16 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   ### Set-up
   #######################
   
-  # Set seed for replication.
+  # Initialize list for results
+  results = list(1)
+  
+  # Set seed for replication
   set.seed(0)
   
   # Define z-score function
   z_score = function(x) {(x - mean(x, na.rm = T))/sd(x, na.rm = T)}
   
-  # Ensure data is in a matrix
+  # Ensure data is in a matrix.
   X = as.matrix(X)
   
   # Define variable names
@@ -39,6 +42,8 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   if(cor(as.vector(t(svd_emp$v) %*% t(X_emp)),y) < 0){
     svd_emp$v = -svd_emp$v
   }
+  
+  results$lv_weights = svd_emp$v
   
   #######################
   ### Permutation testing
@@ -62,8 +67,7 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   }
   
   # Calculate Monte-Carlo p-value
-  sig = sv_emp > quantile(syn_vars,(1 - p_val))
-  names(sig) = 'Significance test'
+  results$sig = sv_emp > quantile(syn_vars,(1 - p_val))
   
   #######################
   ### Bootstrapping
@@ -101,7 +105,17 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   vec_sd = apply(syn_vecs,2,sd)
   
   # Calculate bootstrap ratio
-  bs_ratio = as.data.frame(svd_emp$v/vec_sd)
+  results$bs_ratio = as.data.frame(svd_emp$v/vec_sd)
+  
+  # Calculate LV scores
+  results$lv_scores = X_emp %*% svd_emp$v
+  
+  # Calculate total variance in X accounted for by LV
+  results$X_tot_var = sum(cor(results$lv_scores,X_emp)^2)/dim(X_emp)[2]
+  
+  # Calculate total variance in y accounted for by LV
+  results$y_tot_var = cor(results$lv_scores,y)^2
+  
   
   #######################
   ### Plotting 
@@ -119,27 +133,26 @@ maturity_idx <- function(X, y, n_perms, p_val, path) {
   dev.off()
   
   # Plot bootstrap ratio
-  rownames(bs_ratio) = names
-  colnames(bs_ratio) = 'BS Ratio'
-  min_val = min(0,t(bs_ratio))
-  max_val = max(0,t(bs_ratio))
+  rownames(results$bs_ratio) = names
+  colnames(results$bs_ratio) = 'BS Ratio'
+  min_val = min(0,t(results$bs_ratio))
+  max_val = max(0,t(results$bs_ratio))
   
-  png(paste(path,'bootstrap_ratio.png', sep = ''),width = 600, height = 400)
-  barplot(t(bs_ratio), col = 'gray', ylab = 'Bootstrap Ratio',main = 'LV Boostrap Ratio', ylim = c(min_val,max_val))
+  png(paste(path,'bootstrap_ratio.png', sep = ''),width = dim(X)[2]*85, height = 400)
+  barplot(t(results$bs_ratio), col = 'gray', ylab = 'Bootstrap Ratio',main = 'LV Boostrap Ratio', ylim = c(min_val,max_val))
   abline(h = 2.58, lwd = 2, lty = 'dashed')
   abline(h = -2.58, lwd = 2, lty = 'dashed')
   dev.off()
   
   # Plot LV weights w/ error bars
-  
   rownames(svd_emp$v) = names
   colnames(svd_emp$v) = 'LV Weights'
   min_val = min(0,min(t(svd_emp$v) - vec_sd))
   max_val = max(0,max(t(svd_emp$v) + vec_sd))
   
-  png(paste(path,'lv_weight.png', sep = ''), width = 600, height = 400)
+  png(paste(path,'lv_weight.png', sep = ''), width = dim(X)[2]*85, height = 400)
   bar_plot = barplot(t(svd_emp$v), ylim = c(min_val,max_val), ylab = 'Weights', main = 'Latent Variable Weights', col = 'gray')
   arrows(x0 = bar_plot, y0 = t(svd_emp$v) + vec_sd, y1 = t(svd_emp$v) - vec_sd, angle = 90, code = 3, length = 0.15)
   dev.off()
-  return(list(bs_ratio,svd_emp$v,sig))
+  return(results)
 }
