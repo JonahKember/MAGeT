@@ -1,4 +1,4 @@
-function box = bounding_box(vol, boundary_add, output) 
+function box = bounding_box(vol, boundary_add, output)
 % Inputs:
 %   vol             = Volume with object to be masked (3D-array, .nii, .nii.gz).
 %   boundary_add    = Dimensions to be added to extremes of bounding box. 
@@ -10,11 +10,13 @@ function box = bounding_box(vol, boundary_add, output)
 % size; if vol is a 3D array, boundary_add works in number of voxels. If boundary_add is a scalar,
 % it is added to each dimension; if boundary_add is length(3), elements are added along x,y,z directions.
 
+is_nii = ischar(vol);
+
 if length(boundary_add) == 1
     boundary_add = repelem(boundary_add,3);
 end
 
-if ischar(vol)
+if is_nii
     info = niftiinfo(vol);
     vol = niftiread(vol);
     boundary_add = boundary_add.*info.PixelDimensions;
@@ -29,7 +31,9 @@ y = (min(y) - boundary_add(2)):(max(y) + boundary_add(2));
 z = (min(z) - boundary_add(3)):(max(z) + boundary_add(3));
 
 box(x,y,z) = 1;
-box = cast(box,info.Datatype);
-niftiwrite(box,output,info)
 
+if is_nii
+    box = cast(box,info.Datatype);
+    niftiwrite(box,output,info);
+end
 end
