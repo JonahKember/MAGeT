@@ -1,9 +1,9 @@
-function box = bounding_box(vol, boundary_add, output)
+function box = bounding_box(vol, boundary_add, output) 
 % Inputs:
 %   vol             = Volume with object to be masked (3D-array, .nii, .nii.gz).
 %   boundary_add    = Dimensions to be added to extremes of bounding box. 
 %   output          = File name for output .nii.
-
+%
 % Create bounding box around given object (vol: 3D array or .nii). Assumes elements == 0 are
 % to be excluded from object, while voxels > 0 are to be included. boundary_add specifies amount
 % of space to be added along each dimension of box. If vol is .nii, boundary_add works in voxel
