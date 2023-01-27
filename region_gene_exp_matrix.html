@@ -1,0 +1,287 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Cell-class regional expression</title><meta name="generator" content="MATLAB 9.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-01-27"><meta name="DC.source" content="region_gene_exp_matrix.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Cell-class regional expression</h1><!--introduction--><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#2">Clean data</a></li><li><a href="#3">Calculate the region by cell-type expression matrix</a></li><li><a href="#4">Cluster cell-types into cell-classes using k-means</a></li><li><a href="#5">Calculate the region by cell-class expression matrix</a></li></ul></div><p><b>Dependencies:</b></p><p>1. Table with regional expression values for genes of interest (data/hippocampus_gxp_clean.csv). 2. Table with genes associated with each cell (data/cell_type_gene_lists_clean.csv).</p><pre class="codeinput">gene_exp_filepath = <span class="string">'C:\Users\jonah\Documents\MAGeT\gene_exp\hippocampus_gxp_clean.csv'</span>;
+cell_genes_filepath = <span class="string">'C:\Users\jonah\Documents\MAGeT\gene_exp\cell_type_gene_lists_clean.csv'</span>;
+</pre><h2 id="2">Clean data</h2><pre class="codeinput">cell_genes = readtable(cell_genes_filepath);
+gene_exp = readtable(gene_exp_filepath);
+
+<span class="comment">% Remove cell-types 30,45,50  as in Seidlitz et al., 2018 (two without inhibitory/excitatory classification; one with no similar cell-types ('per')).</span>
+cell_genes([30,45,50],:) = [];
+
+gene_exp_num = table2array(gene_exp(:,2:end));
+gene_exp.Properties.VariableNames{1} = <span class="string">'GeneID'</span>;
+gene_ids = gene_exp.GeneID;
+</pre><h2 id="3">Calculate the region by cell-type expression matrix</h2><pre class="codeinput"><span class="comment">% Define variables.</span>
+n_cells = height(cell_genes);
+n_regions = width(gene_exp_num);
+
+<span class="comment">% Initialize matrix.</span>
+region_cell_exp = zeros(n_regions,n_cells);
+
+<span class="keyword">for</span> n_cell = 1:n_cells
+
+    <span class="comment">% Pull cell-type gene set.</span>
+    gene_set = table2cell(cell_genes(n_cell,4:end));
+    gene_set = unique(gene_set)';
+
+    <span class="comment">% For each region, calculate median expression in gene set.</span>
+    idx = ismember(gene_ids,gene_set);
+    region_cell_exp(:,n_cell) = median(gene_exp_num(idx,:));
+
+<span class="keyword">end</span>
+
+<span class="comment">% Plot region by cell matrix</span>
+figure(<span class="string">'Position'</span>,[464 407 943 420]);
+imagesc(region_cell_exp);
+set(gca,<span class="string">'XTick'</span>,1:height(cell_genes), <span class="string">'XTickLabel'</span>,cell_genes.Type)
+ylabel(<span class="string">'Region'</span>)
+xlabel(<span class="string">'Cell type'</span>)
+title(<span class="string">'Cell type regional expression'</span>)
+</pre><img vspace="5" hspace="5" src="region_gene_exp_matrix_01.png" alt=""> <h2 id="4">Cluster cell-types into cell-classes using k-means</h2><pre class="codeinput"><span class="comment">% Set seed for reproducibilty.</span>
+rng(1)
+
+<span class="comment">% Determine optimal number of clusters through k-means/silhouette coefficient.</span>
+eval = evalclusters(region_cell_exp',<span class="string">'kmeans'</span>,<span class="string">'Silhouette'</span>,<span class="string">'KList'</span>,1:20);
+opt_k = eval.OptimalK;
+idx = kmeans(region_cell_exp',opt_k);
+
+<span class="comment">% Plot tSNE scores with class labels for optimal k.</span>
+tsne_scores = tsne(region_cell_exp');
+
+text_size = 15;
+
+figure;plot(tsne_scores(idx == 1,1),tsne_scores(idx == 1,2),<span class="string">'.'</span>,<span class="string">'MarkerSize'</span>,text_size)
+text(tsne_scores(idx == 1,1),tsne_scores(idx == 1,2),cell_genes.Type(idx == 1),<span class="string">'VerticalAlignment'</span>,<span class="string">'top'</span>,<span class="string">'HorizontalAlignment'</span>,<span class="string">'center'</span>);
+<span class="keyword">for</span> n_k = 2:opt_k
+    hold <span class="string">on</span>;plot(tsne_scores(idx == n_k,1),tsne_scores(idx == n_k,2),<span class="string">'.'</span>,<span class="string">'MarkerSize'</span>,text_size)
+    text(tsne_scores(idx == n_k,1),tsne_scores(idx == n_k,2),cell_genes.Type(idx == n_k),<span class="string">'VerticalAlignment'</span>,<span class="string">'top'</span>,<span class="string">'HorizontalAlignment'</span>,<span class="string">'left'</span>);
+<span class="keyword">end</span>
+
+xlim([(min(tsne_scores(:,1)) - 100),(max(tsne_scores(:,1)) + 100)])
+ylim([(min(tsne_scores(:,2)) - 100),(max(tsne_scores(:,2)) + 100)])
+xlabel(<span class="string">'tSNE 1'</span>)
+ylabel(<span class="string">'tSNE 2'</span>)
+title(<span class="string">'Cell-classes'</span>)
+</pre><img vspace="5" hspace="5" src="region_gene_exp_matrix_02.png" alt=""> <h2 id="5">Calculate the region by cell-class expression matrix</h2><p>The regional expression of a given cell-class is a weighted average across cell-types, where each cell-type is weighted by how similar it is to its class. This similarity is calculated by taking the euclidean distance between each cell-type's regional expression vector and the 1st principal component of the cell-class regional expression matrix.</p><pre class="codeinput"><span class="comment">% Define Euclidean distance metric.</span>
+dist = @(p1,p2) sqrt(sum((p1 - p2) .^ 2));
+
+<span class="comment">% Initialize matrix to track weighted-average expressions of cell-classes.</span>
+w_cell_class_exp = zeros(n_regions,opt_k);
+
+<span class="keyword">for</span> class = 1:opt_k
+
+    <span class="comment">% Define cells within current class.</span>
+    class_cells = find(idx == class);
+
+    <span class="comment">% Run PCA on cell-class regional-expression matrix.</span>
+    pca_w = pca(region_cell_exp(:,class_cells)');
+
+    <span class="comment">% Calculate Euclidean distance between expression of a cell-type and 'class centroid' (1st PCA component).</span>
+    weights = zeros(length(class_cells),1);
+    <span class="keyword">for</span> n_cell = 1:length(class_cells)
+        weights(n_cell) = dist(pca_w(:,1),region_cell_exp(:,class_cells(n_cell)));
+    <span class="keyword">end</span>
+
+    <span class="comment">% Calculate weighted-average expression of a cell-class.</span>
+    w_cell_class_exp(:,class) = sum(region_cell_exp(:,class_cells).*weights',2);
+
+<span class="keyword">end</span>
+
+<span class="comment">% Plot</span>
+figure;
+fig = imagesc(w_cell_class_exp);
+set(gca,<span class="string">'XTick'</span>,1:opt_k, <span class="string">'XTickLabel'</span>,num2cell(1:opt_k))
+ylabel(<span class="string">'Region'</span>)
+xlabel(<span class="string">'Cell class'</span>)
+title(<span class="string">'Cell class regional expression'</span>)
+</pre><img vspace="5" hspace="5" src="region_gene_exp_matrix_03.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Cell-class regional expression 
+%%
+% *Dependencies:*
+%
+% 1. Table with regional expression values for genes of interest (data/hippocampus_gxp_clean.csv).
+% 2. Table with genes associated with each cell (data/cell_type_gene_lists_clean.csv).
+
+gene_exp_filepath = 'C:\Users\jonah\Documents\MAGeT\gene_exp\hippocampus_gxp_clean.csv';
+cell_genes_filepath = 'C:\Users\jonah\Documents\MAGeT\gene_exp\cell_type_gene_lists_clean.csv';
+
+%% Clean data
+
+cell_genes = readtable(cell_genes_filepath);
+gene_exp = readtable(gene_exp_filepath);
+
+% Remove cell-types 30,45,50  as in Seidlitz et al., 2018 (two without inhibitory/excitatory classification; one with no similar cell-types ('per')).
+cell_genes([30,45,50],:) = [];
+
+gene_exp_num = table2array(gene_exp(:,2:end));
+gene_exp.Properties.VariableNames{1} = 'GeneID';
+gene_ids = gene_exp.GeneID;
+
+%% Calculate the region by cell-type expression matrix
+
+% Define variables.
+n_cells = height(cell_genes);
+n_regions = width(gene_exp_num);
+
+% Initialize matrix.
+region_cell_exp = zeros(n_regions,n_cells);
+
+for n_cell = 1:n_cells
+
+    % Pull cell-type gene set.
+    gene_set = table2cell(cell_genes(n_cell,4:end));
+    gene_set = unique(gene_set)';
+
+    % For each region, calculate median expression in gene set.
+    idx = ismember(gene_ids,gene_set);
+    region_cell_exp(:,n_cell) = median(gene_exp_num(idx,:));
+   
+end
+
+% Plot region by cell matrix
+figure('Position',[464 407 943 420]);
+imagesc(region_cell_exp);
+set(gca,'XTick',1:height(cell_genes), 'XTickLabel',cell_genes.Type)
+ylabel('Region')
+xlabel('Cell type')
+title('Cell type regional expression')
+
+%% Cluster cell-types into cell-classes using k-means
+
+% Set seed for reproducibilty.
+rng(1)
+
+% Determine optimal number of clusters through k-means/silhouette coefficient.
+eval = evalclusters(region_cell_exp','kmeans','Silhouette','KList',1:20);
+opt_k = eval.OptimalK;
+idx = kmeans(region_cell_exp',opt_k);
+
+% Plot tSNE scores with class labels for optimal k.
+tsne_scores = tsne(region_cell_exp');
+
+text_size = 15;
+
+figure;plot(tsne_scores(idx == 1,1),tsne_scores(idx == 1,2),'.','MarkerSize',text_size)
+text(tsne_scores(idx == 1,1),tsne_scores(idx == 1,2),cell_genes.Type(idx == 1),'VerticalAlignment','top','HorizontalAlignment','center');
+for n_k = 2:opt_k
+    hold on;plot(tsne_scores(idx == n_k,1),tsne_scores(idx == n_k,2),'.','MarkerSize',text_size)
+    text(tsne_scores(idx == n_k,1),tsne_scores(idx == n_k,2),cell_genes.Type(idx == n_k),'VerticalAlignment','top','HorizontalAlignment','left');
+end
+
+xlim([(min(tsne_scores(:,1)) - 100),(max(tsne_scores(:,1)) + 100)])
+ylim([(min(tsne_scores(:,2)) - 100),(max(tsne_scores(:,2)) + 100)])
+xlabel('tSNE 1')
+ylabel('tSNE 2')
+title('Cell-classes')
+
+%% Calculate the region by cell-class expression matrix
+
+%%
+% The regional expression of a given cell-class is a weighted average across cell-types, where each cell-type is weighted by how similar 
+% it is to its class. This similarity is calculated by taking the euclidean distance between each cell-type's regional expression vector 
+% and the 1st principal component of the cell-class regional expression matrix.
+
+% Define Euclidean distance metric.
+dist = @(p1,p2) sqrt(sum((p1 - p2) .^ 2));
+
+% Initialize matrix to track weighted-average expressions of cell-classes.
+w_cell_class_exp = zeros(n_regions,opt_k);
+
+for class = 1:opt_k
+
+    % Define cells within current class.
+    class_cells = find(idx == class);
+
+    % Run PCA on cell-class regional-expression matrix.
+    pca_w = pca(region_cell_exp(:,class_cells)');
+    
+    % Calculate Euclidean distance between expression of a cell-type and 'class centroid' (1st PCA component).
+    weights = zeros(length(class_cells),1);
+    for n_cell = 1:length(class_cells)
+        weights(n_cell) = dist(pca_w(:,1),region_cell_exp(:,class_cells(n_cell)));
+    end
+
+    % Calculate weighted-average expression of a cell-class.
+    w_cell_class_exp(:,class) = sum(region_cell_exp(:,class_cells).*weights',2);
+
+end
+
+% Plot
+figure;
+fig = imagesc(w_cell_class_exp);
+set(gca,'XTick',1:opt_k, 'XTickLabel',num2cell(1:opt_k))
+ylabel('Region')
+xlabel('Cell class')
+title('Cell class regional expression')
+
+
+##### SOURCE END #####
+--></body></html>
