@@ -1,18 +1,20 @@
-function pls(X,Y,params)
+function [X_scores,Y_scores,h_test] = pls(X,Y,n_perm,p_val,n_bootstraps,bs_thresh,save_path)
 %%
-%
 % Inputs:
 %   
-%   X = [Feature x Observation]
-%   Y = [Feature x Observation]
-%   params = Parameter structure, including:
-%       .n_perm = Number of permutations for hypothesis test (i.e., [1000]).
-%       .p_val = Significance threshold (i.e., [.05]) 
-%       .bs_thresh = Bootstrap-ratio threshold for defining significant features.
-%       .save_path = Directory to save images.
+%   X = [Observation x Feature] table.
+%   Y = [Observation x Feature] table
+%   n_perm = Number of permutations for hypothesis test (i.e., [1000]).
+%   p_val = Significance threshold (i.e., [.05]) 
+%   n_bootstraps = Number of bootstraps.
+%   bs_thresh = Bootstrap-ratio threshold for defining significant features.
+%   save_path = Directory to save images.
 %
 % Output:
-%
+%   
+%   X_scores = X latent variable scores.
+%   Y_scores = Y latent variable scores.
+%   h_test = [N-comp] vector with outcome of hypothesis test for each component.
 %   latent_variable_n = .png of loadings for each significant component.
 %   null_distribution = .png of empirical covariance for each component against null distribution.
 %   variance_covariance_X_Y = .png with variance in X and Y, and covariance in (X,Y), accounted for by LV
@@ -23,40 +25,42 @@ function pls(X,Y,params)
 n_obs = size(X,1);
 n_comp = size(X,2);
 
-% Unpack parameters for cleaner code.
-n_perm = params.n_perm;
-p_val = params.p_val;
-bs_thresh = params.bs_thresh;
-save_path = params.save_path;
-
 % Define function to measure covariance of two vectors.
-covar = @(x,Y) sum((x - mean(x)).*(Y - mean(Y)))./length(x);
+covar = @(x,y) sum((x - mean(x)).*(y - mean(y)))./length(x);
+
+% Get labels.
+x_labels = X.Properties.VariableNames;
+y_labels = Y.Properties.VariableNames;
+
+% Prep data.
+X = table2array(X);
+Y = table2array(Y);
 
 % Z-score
 X_norm = zscore(X);
 Y_norm = zscore(Y);
 
 % Run PLS.
-[x_weights,Y_weights,x_scores,Y_scores,~,pct_var] = plsregress(X_norm,Y_norm,n_comp);
+[x_weights,Y_weights,X_scores,Y_scores,~,pct_var] = plsregress(X_norm,Y_norm,n_comp);
 
 % Calculate covariance of each component. 
-covar_emp = covar(x_scores,Y_scores);
+covar_emp = covar(X_scores,Y_scores);
 
-% Sort components bY covariance (matlab sorts bY variance in Y bY default).
+% Sort components by covariance (matlab sorts by variance in Y by default).
 [~,sorted_idx] = sort(covar_emp,'descend');
 covar_emp = covar_emp(sorted_idx);
 
-%% Plot variance in X and Y accounted for bY each component, as well as covariance of component scores.
+%% Plot variance in X and Y accounted for by each component, as well as covariance of component scores.
 
 fig = figure('Position',[515 403 884 421]);
 hold on;plot(pct_var(1,sorted_idx),'LineWidth',2.5)
 hold on;plot(pct_var(2,sorted_idx),'LineWidth',2.5)
-hold on;plot(covar_emp,'LineWidth',2.5,'color','k')
+hold on;plot(covar_emp./sum(covar_emp),'LineWidth',2.5,'color','k')
 xlim([1,n_comp])
-Ylabel('Variance/Covariance')
+ylabel('Variance/Covariance')
 xlabel('Component')
 legend('var(X)','var(Y)','cov(X,Y)')
-title('Variance/Covariance explained bY latent variables')
+title('Variance/Covariance explained by latent variables')
 saveas(fig,[save_path,'variance_covariance_X_Y.png'])
 
 %% Permutation testing
@@ -81,8 +85,8 @@ for null = 1:n_perm
 
 end
 
-% HYpothesis test.
-sig_thresholds = quantile(covar_null',1 - p_val);
+% Hypothesis test.
+sig_thresholds = quantile((covar_null./sum(covar_null))',1 - p_val);
 h_test = covar_emp >= sig_thresholds;
 
 sig_components = find(h_test);
@@ -90,12 +94,12 @@ sig_components = find(h_test);
 %% Plot empirical covariance for each component against the null distribution.
 
 fig = figure('Position',[515 403 884 421]);
-hold on;plot(1:n_comp,covar_null,'k')
-hold on;plot(1:n_comp,covar_emp,'linewidth',2,'color','blue')
+hold on;plot(1:n_comp,covar_null./sum(covar_null),'k')
+hold on;plot(1:n_comp,covar_emp./sum(covar_emp),'linewidth',2,'color','blue')
 hold on;plot(1:n_comp,sig_thresholds,'--','linewidth',2,'color','red')
 xlim([1,n_comp])
 xlabel('Component')
-Ylabel('Covariance')
+ylabel('Covariance')
 legend(['Permutation X',repelem({''},n_perm - 1),'Empirical X',['Threshold {\it p} < ',num2str(p_val)]])
 title('Null Distribution')
 saveas(fig,[save_path,'null_distribution.png'])
@@ -183,20 +187,20 @@ for n_sig_comp = 1:length(sig_components)
     bar(x_sig,'k','FaceAlpha', .75);
     hold on;bar(x_nonsig,'k','FaceAlpha', .25);
     
-    hold on;errorbar(x_weights(:,sig_comp),x_se,'color','k','LineStYle','none');
+    hold on;errorbar(x_weights(:,sig_comp),x_se,'color','k','LineStyle','none');
     set(gca,'XTick',1:n_comp, 'XTickLabel',[x_labels,{''}])
     title(['{\it X} latent variable ',num2str(sig_comp)])
-    Ylabel('PLS loading')
+    ylabel('PLS loading')
     legend(['|BS-Ratio| > ',num2str(bs_thresh)])
     
     subplot(2,1,2)
     hold on;bar(Y_sig,'k','FaceAlpha', .75);
     hold on;bar(Y_nonsig,'k','FaceAlpha', .25);
     
-    hold on;errorbar(Y_weights(:,sig_comp),Y_se,'color','k','LineStYle','none');
-    set(gca,'XTick',1:n_comp, 'XTickLabel',[Y_labels,{''}])
+    hold on;errorbar(Y_weights(:,sig_comp),Y_se,'color','k','LineStyle','none');
+    set(gca,'XTick',1:n_comp, 'XTickLabel',[y_labels,{''}])
     title(['{\it Y} latent variable ',num2str(sig_comp)])
-    Ylabel('PLS loading')
+    ylabel('PLS loading')
     legend(['|BS-Ratio| > ',num2str(bs_thresh)])
     
     saveas(fig,[save_path,'latent_variable_',num2str(sig_comp),'.png'])
